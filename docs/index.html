@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>designsnap — Deep design system extraction from any URL</title>
+  <meta name="description" content="Extract colors, typography, spacing, shadows, accessibility, motion, and interactive states from any live URL. Export to Tailwind, CSS vars, Style Dictionary, or Figma Tokens.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #08080a;
+      --bg-elevated: #0e0e12;
+      --bg-surface: #131318;
+      --bg-hover: #18181f;
+      --bg-inset: #0a0a0d;
+      --border: #1e1e26;
+      --border-light: #28283a;
+      --text: #e4e4ec;
+      --text-secondary: #8888a0;
+      --text-muted: #4e4e66;
+      --accent: #3bf0a0;
+      --accent-dim: rgba(59, 240, 160, 0.08);
+      --accent-medium: rgba(59, 240, 160, 0.15);
+      --accent-border: rgba(59, 240, 160, 0.22);
+      --red: #ff6b6b;
+      --amber: #ffb86c;
+      --blue: #6cb6ff;
+      --purple: #b38bff;
+      --pink: #f472b6;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', -apple-system, sans-serif;
+      --max-w: 860px;
+      --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::selection { background: var(--accent); color: var(--bg); }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, .mono { font-family: var(--mono); font-size: 0.875em; }
+
+    /* ── NAV ──────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(8, 8, 10, 0.82);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .inner {
+      max-width: var(--max-w); margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 52px; padding: 0 24px;
+    }
+    nav .logo {
+      font-family: var(--mono); font-weight: 600; font-size: 14px;
+      display: flex; align-items: center; gap: 7px; color: var(--text);
+    }
+    nav .logo .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    nav .tag { font-size: 10px; color: var(--text-muted); background: var(--bg-surface); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border); }
+    nav .links { display: flex; gap: 20px; font-size: 12.5px; }
+    nav .links a { color: var(--text-muted); transition: color 0.2s; }
+    nav .links a:hover { color: var(--text); text-decoration: none; }
+
+    /* ── MAIN ─────────────────────────────────────── */
+    main { max-width: var(--max-w); margin: 0 auto; padding: 100px 24px 60px; }
+    section { margin-bottom: 72px; }
+    section h2 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 2.5px;
+      color: var(--text-muted); margin-bottom: 24px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    section h3 { font-size: 17px; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.01em; }
+    section p { color: var(--text-secondary); margin-bottom: 14px; font-size: 14.5px; }
+    section p strong { color: var(--text); font-weight: 500; }
+
+    /* ── HERO ─────────────────────────────────────── */
+    .hero { margin-bottom: 88px; padding-top: 20px; }
+    .hero h1 {
+      font-size: clamp(30px, 5vw, 46px); font-weight: 800; line-height: 1.15;
+      margin-bottom: 16px; letter-spacing: -0.035em;
+    }
+    .hero h1 .accent { color: var(--accent); }
+    .hero h1 .dim { color: var(--text-muted); font-weight: 400; font-size: 0.55em; display: block; margin-top: 4px; letter-spacing: 0; }
+    .hero .sub { font-size: 15px; color: var(--text-secondary); max-width: 580px; line-height: 1.75; margin-bottom: 32px; }
+
+    .install-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .install-block {
+      background: var(--bg-surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 18px; font-family: var(--mono); font-size: 13px;
+      display: inline-flex; align-items: center; gap: 10px;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s;
+    }
+    .install-block:hover { border-color: var(--accent-border); background: var(--bg-elevated); }
+    .install-block .p { color: var(--text-muted); user-select: none; }
+    .install-block .cmd { color: var(--accent); }
+    .install-block .arg { color: var(--text-secondary); }
+    .install-block .flag { color: var(--purple); }
+    .install-block .hint {
+      font-size: 10px; color: var(--text-muted); font-family: var(--sans);
+      margin-left: 12px; transition: color 0.2s;
+    }
+    .install-block.copied .hint { color: var(--accent); }
+
+    /* ── DEMO BLOCK ──────────────────────────────── */
+    .demo {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin: 20px 0;
+    }
+    .demo-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      font-size: 11px; color: var(--text-muted); font-family: var(--mono);
+    }
+    .demo-head .dots { display: flex; gap: 5px; margin-right: 6px; }
+    .demo-head .dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--border-light); }
+    .demo-body { padding: 20px; }
+    .demo-body.dark { background: var(--bg-inset); }
+    .demo-body.flush { padding: 0; }
+
+    /* ── TERMINAL ─────────────────────────────────── */
+    .tl { font-family: var(--mono); font-size: 12.5px; line-height: 2; white-space: pre; }
+    .tl .p { color: var(--accent); }
+    .tl .f { color: var(--purple); }
+    .tl .u { color: var(--text-secondary); }
+    .tl .ok { color: var(--accent); }
+    .tl .d { color: var(--text-muted); }
+    .tl .w { color: var(--amber); }
+    .tl .num { color: var(--blue); }
+
+    /* ── SCORE BARS ──────────────────────────────── */
+    .score-row {
+      display: flex; align-items: center; gap: 12px; margin: 7px 0;
+    }
+    .score-label { width: 90px; font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+    .score-track {
+      flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+    }
+    .score-fill {
+      height: 100%; border-radius: 3px;
+      transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+      width: 0;
+    }
+    .score-fill.green { background: var(--accent); }
+    .score-fill.amber { background: var(--amber); }
+    .score-fill.red { background: var(--red); }
+    .score-val { width: 32px; font-size: 12px; font-family: var(--mono); color: var(--text-secondary); text-align: right; }
+
+    /* ── COLOR HARMONY ───────────────────────────── */
+    .harmony-wheel {
+      width: 180px; height: 180px; border-radius: 50%;
+      background: conic-gradient(#ff6b6b, #ffb86c, #ffd93d, #3bf0a0, #6cb6ff, #b38bff, #f472b6, #ff6b6b);
+      position: relative; margin: 0 auto 16px; opacity: 0.5;
+    }
+    .harmony-dot {
+      position: absolute; width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid var(--bg); box-shadow: 0 0 0 1px rgba(255,255,255,0.3);
+      transform: translate(-50%, -50%);
+    }
+    .harmony-label { text-align: center; font-size: 13px; color: var(--text-secondary); }
+
+    /* ── GRID DEMO ───────────────────────────────── */
+    .grid-demo {
+      display: flex; gap: 2px; height: 60px; align-items: end;
+    }
+    .grid-bar {
+      flex: 1; border-radius: 3px 3px 0 0;
+      transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .grid-bar.on-grid { background: var(--accent-medium); border: 1px solid var(--accent-border); border-bottom: none; }
+    .grid-bar.off-grid { background: rgba(255, 107, 107, 0.12); border: 1px solid rgba(255, 107, 107, 0.2); border-bottom: none; }
+    .grid-labels { display: flex; gap: 2px; margin-top: 4px; }
+    .grid-labels span { flex: 1; text-align: center; font-size: 9px; font-family: var(--mono); color: var(--text-muted); }
+
+    /* ── A11Y DEMO ───────────────────────────────── */
+    .a11y-check {
+      display: flex; align-items: center; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .a11y-check:last-child { border-bottom: none; }
+    .a11y-icon {
+      width: 28px; height: 28px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+    .a11y-icon.pass { background: rgba(59, 240, 160, 0.12); color: var(--accent); }
+    .a11y-icon.warn { background: rgba(255, 184, 108, 0.12); color: var(--amber); }
+    .a11y-icon.fail { background: rgba(255, 107, 107, 0.12); color: var(--red); }
+    .a11y-text { font-size: 13px; color: var(--text-secondary); }
+    .a11y-text strong { color: var(--text); }
+
+    /* ── CONTRAST DEMO ───────────────────────────── */
+    .contrast-pair {
+      display: flex; gap: 16px; align-items: center; padding: 8px 0;
+    }
+    .contrast-swatch {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .contrast-dot {
+      width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border);
+    }
+    .contrast-ratio {
+      font-family: var(--mono); font-size: 12px;
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .contrast-ratio.pass { background: rgba(59, 240, 160, 0.1); color: var(--accent); }
+    .contrast-ratio.fail { background: rgba(255, 107, 107, 0.1); color: var(--red); }
+
+    /* ── MOTION DEMO ─────────────────────────────── */
+    .motion-bars {
+      display: flex; gap: 12px; align-items: end; height: 100px;
+    }
+    .motion-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .motion-bar-track {
+      width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+    }
+    .motion-bar-fill {
+      height: 100%; border-radius: 3px; background: var(--purple);
+      animation: motionPulse 2s ease-in-out infinite;
+    }
+    @keyframes motionPulse { 0%, 100% { width: 0; } 50% { width: 100%; } }
+    .motion-label { font-size: 10px; font-family: var(--mono); color: var(--text-muted); }
+
+    /* ── STATE DEMO ──────────────────────────────── */
+    .state-demo { display: flex; gap: 12px; flex-wrap: wrap; }
+    .state-btn {
+      padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      border: 1px solid transparent; cursor: pointer; transition: all 0.2s;
+      font-family: var(--sans);
+    }
+    .state-btn.primary { background: #5e6ad2; color: #fff; }
+    .state-btn.primary:hover { background: #6e7ae2; box-shadow: 0 4px 16px rgba(94, 106, 210, 0.3); transform: translateY(-1px); }
+    .state-btn.ghost { background: transparent; color: var(--text-secondary); border-color: var(--border-light); }
+    .state-btn.ghost:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border-light); }
+
+    .state-arrow { font-size: 16px; color: var(--text-muted); display: flex; align-items: center; }
+    .state-change {
+      font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+      padding: 8px 12px; background: var(--bg-inset); border-radius: 6px; border: 1px solid var(--border);
+    }
+    .state-change .prop { color: var(--text-secondary); }
+    .state-change .from { color: var(--red); }
+    .state-change .to { color: var(--accent); }
+
+    /* ── EXPORT CARDS ────────────────────────────── */
+    .export-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .export-card {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px; transition: border-color 0.2s;
+    }
+    .export-card:hover { border-color: var(--border-light); }
+    .export-card .name { font-family: var(--mono); font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .export-card .desc { font-size: 12px; color: var(--text-muted); }
+    .export-card .flag { font-family: var(--mono); font-size: 11px; color: var(--purple); margin-top: 8px; display: inline-block; background: rgba(179, 139, 255, 0.08); padding: 2px 8px; border-radius: 4px; }
+
+    /* ── TABLE ────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; font-weight: 500; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+    td code { background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--text); border: 1px solid var(--border); }
+
+    /* ── CODE BLOCK ──────────────────────────────── */
+    .code-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 14px 0; }
+    .code-head { font-size: 11px; font-family: var(--mono); color: var(--text-muted); padding: 8px 14px; border-bottom: 1px solid var(--border); }
+    .code-block pre { padding: 14px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; }
+    .kw { color: var(--purple); } .fn { color: var(--blue); } .str { color: var(--accent); } .cmt { color: var(--text-muted); }
+
+    /* ── FLOW ─────────────────────────────────────── */
+    .flow { display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 12px 0; }
+    .flow-step {
+      background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; min-width: 110px; text-align: center; flex-shrink: 0;
+    }
+    .flow-step .num { font-family: var(--mono); font-size: 10px; color: var(--accent); margin-bottom: 4px; }
+    .flow-step .title { font-size: 12px; font-weight: 600; }
+    .flow-step .desc { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+    .flow-arrow { color: var(--text-muted); font-size: 14px; padding: 0 5px; flex-shrink: 0; }
+
+    /* ── DISCLAIMER ──────────────────────────────── */
+    .disclaimer {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--amber); border-radius: 0 10px 10px 0;
+      padding: 18px 22px; margin: 20px 0;
+    }
+    .disclaimer h4 { font-size: 12px; color: var(--amber); margin-bottom: 8px; font-weight: 600; }
+    .disclaimer p { font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; }
+    .disclaimer p:last-child { margin-bottom: 0; }
+    .disclaimer ul { list-style: none; }
+    .disclaimer ul li { font-size: 12.5px; color: var(--text-muted); padding: 2px 0 2px 14px; position: relative; }
+    .disclaimer ul li::before { content: "·"; position: absolute; left: 3px; }
+
+    /* ── FOOTER ───────────────────────────────────── */
+    footer {
+      max-width: var(--max-w); margin: 0 auto; padding: 28px 24px 44px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);
+    }
+    footer a { color: var(--text-secondary); }
+
+    /* ── ANIMATION ────────────────────────────────── */
+    .fade-in { opacity: 0; transform: translateY(12px); transition: opacity 0.5s, transform 0.5s; }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 640px) {
+      nav .links { display: none; }
+      .flow { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); }
+      .export-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="logo"><span class="dot"></span>designsnap</div>
+      <span class="tag">v0.2.0</span>
+    </div>
+    <div class="links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#score">Score</a>
+      <a href="#output">Output</a>
+      <a href="#exports">Exports</a>
+      <a href="#install">Install</a>
+      <a href="#disclaimer">Disclaimer</a>
+      <a href="https://github.com/Dragoon0x/designsnap">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<!-- ═══ HERO ═══════════════════════════════════════════════ -->
+<div class="hero">
+  <h1>
+    Deep extraction.<br>
+    <span class="accent">Any URL. Full system.</span>
+    <span class="dim">Colors, type, spacing, motion, a11y, interactive states, exports.</span>
+  </h1>
+  <p class="sub">
+    designsnap crawls a live page with a headless browser, scans every element's computed styles, clusters values into tokens, scores the system's consistency, runs an accessibility audit, captures hover states, detects the spacing grid, and outputs to 5 formats in one command.
+  </p>
+  <div class="install-row">
+    <div class="install-block" onclick="copyCmd(this, 'npx designsnap https://example.com --all')">
+      <span class="p">$</span>
+      <span><span class="cmd">npx designsnap</span> <span class="arg">https://example.com</span> <span class="flag">--all</span></span>
+      <span class="hint">click to copy</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TERMINAL DEMO ═════════════════════════════════════ -->
+<section>
+  <h2>What it looks like</h2>
+  <div class="demo">
+    <div class="demo-head"><div class="dots"><span></span><span></span><span></span></div>terminal</div>
+    <div class="demo-body dark">
+      <div class="tl"><span class="p">$</span> designsnap https://linear.app <span class="f">--all --preview --dark</span></div>
+      <div class="tl"></div>
+      <div class="tl">  <strong>designsnap</strong>  <span class="d">v0.2.0</span></div>
+      <div class="tl">  <span class="d">https://linear.app</span></div>
+      <div class="tl"></div>
+      <div class="tl">  <span class="ok">✓</span> Extraction complete</div>
+      <div class="tl"></div>
+      <div class="tl">  <span class="ok">✓</span> DESIGN.md       → ./DESIGN.md</div>
+      <div class="tl">  <span class="ok">✓</span> Preview         → ./DESIGN-preview.html</div>
+      <div class="tl">  <span class="ok">✓</span> Tailwind        → ./DESIGN.tailwind.js</div>
+      <div class="tl">  <span class="ok">✓</span> CSS vars        → ./DESIGN.tokens.css</div>
+      <div class="tl">  <span class="ok">✓</span> Style Dict      → ./DESIGN.tokens.json</div>
+      <div class="tl">  <span class="ok">✓</span> Figma Tokens    → ./DESIGN.figma-tokens.json</div>
+      <div class="tl"></div>
+      <div class="tl">  <span class="d">Summary</span></div>
+      <div class="tl">  <span class="d">18 colors · 3 fonts · 14 spacing · 5 components · 4 shadows</span></div>
+      <div class="tl">  <span class="d">Score:</span> <span class="ok">82/100</span> <span class="d">(color 90 · type 95 · space 72 · a11y 70)</span></div>
+      <div class="tl">  <span class="d">Grid: 4px base (72% adherence)</span></div>
+      <div class="tl">  <span class="d">Type scale: Major Third (1.25:1)</span></div>
+      <div class="tl">  <span class="d">Color harmony: analogous</span></div>
+      <div class="tl">  <span class="w">⚠ 3 contrast issues found</span></div>
+      <div class="tl">  <span class="d">Breakpoints: 640px, 768px, 1024px, 1280px</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ══════════════════════════════════════ -->
+<section id="how-it-works" class="fade-in">
+  <h2>How it works</h2>
+  <p>Eight steps. No AI inference. No screenshot parsing. Reading what the browser actually rendered.</p>
+  <div class="flow">
+    <div class="flow-step"><div class="num">01</div><div class="title">Load</div><div class="desc">Puppeteer opens<br>the URL</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="num">02</div><div class="title">Wait</div><div class="desc">Dynamic content<br>+ fonts render</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="num">03</div><div class="title">Scan</div><div class="desc">Every element's<br>computed styles</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="num">04</div><div class="title">Parse</div><div class="desc">CSS vars, @font-face<br>@keyframes, @media</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="num">05</div><div class="title">Simulate</div><div class="desc">Hover + focus<br>state changes</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="num">06</div><div class="title">Cluster</div><div class="desc">Color distance<br>spacing grid</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="num">07</div><div class="title">Score</div><div class="desc">Consistency<br>across 6 axes</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="num">08</div><div class="title">Export</div><div class="desc">5 formats<br>one command</div></div>
+  </div>
+</section>
+
+<!-- ═══ CONSISTENCY SCORE ═════════════════════════════════ -->
+<section id="score" class="fade-in">
+  <h2>Consistency Score</h2>
+  <p>Every extraction rates the design system's consistency across six dimensions. <strong>0-100 per axis</strong>, averaged into an overall score. Helps you understand how systematic a design actually is before working with it.</p>
+  <div class="demo">
+    <div class="demo-head"><div class="dots"><span></span><span></span><span></span></div>design consistency · 82/100</div>
+    <div class="demo-body">
+      <div class="score-row"><span class="score-label">Color</span><div class="score-track"><div class="score-fill green" data-w="90"></div></div><span class="score-val">90</span></div>
+      <div class="score-row"><span class="score-label">Typography</span><div class="score-track"><div class="score-fill green" data-w="95"></div></div><span class="score-val">95</span></div>
+      <div class="score-row"><span class="score-label">Spacing</span><div class="score-track"><div class="score-fill amber" data-w="72"></div></div><span class="score-val">72</span></div>
+      <div class="score-row"><span class="score-label">Radius</span><div class="score-track"><div class="score-fill green" data-w="80"></div></div><span class="score-val">80</span></div>
+      <div class="score-row"><span class="score-label">Shadows</span><div class="score-track"><div class="score-fill green" data-w="85"></div></div><span class="score-val">85</span></div>
+      <div class="score-row"><span class="score-label">Accessibility</span><div class="score-track"><div class="score-fill amber" data-w="70"></div></div><span class="score-val">70</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ COLOR HARMONY ═════════════════════════════════════ -->
+<section class="fade-in">
+  <h2>Color Analysis</h2>
+  <p><strong>Clustering</strong> groups similar hex values by Euclidean distance in RGB space. <strong>Role inference</strong> assigns semantic labels based on lightness, saturation, and usage context. <strong>Harmony detection</strong> identifies the palette type (monochromatic, complementary, analogous, triadic). <strong>Pairing validation</strong> tests every fg/bg combination for WCAG AA/AAA compliance.</p>
+
+  <div class="demo">
+    <div class="demo-head"><div class="dots"><span></span><span></span><span></span></div>color harmony · analogous</div>
+    <div class="demo-body" style="display:flex;gap:32px;align-items:center;flex-wrap:wrap">
+      <div>
+        <div class="harmony-wheel">
+          <div class="harmony-dot" style="top:20%;left:35%;background:#5e6ad2"></div>
+          <div class="harmony-dot" style="top:12%;left:55%;background:#6cb6ff"></div>
+          <div class="harmony-dot" style="top:28%;left:20%;background:#b38bff"></div>
+        </div>
+        <div class="harmony-label">3 chromatic hues within 90° arc</div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;font-family:var(--mono)">accessible pairings</div>
+        <div class="contrast-pair">
+          <div class="contrast-swatch"><div class="contrast-dot" style="background:#0a0a0a"></div><div class="contrast-dot" style="background:#ffffff"></div></div>
+          <span class="contrast-ratio pass">16.0:1 AA AAA</span>
+        </div>
+        <div class="contrast-pair">
+          <div class="contrast-swatch"><div class="contrast-dot" style="background:#5e6ad2"></div><div class="contrast-dot" style="background:#ffffff"></div></div>
+          <span class="contrast-ratio pass">4.7:1 AA</span>
+        </div>
+        <div class="contrast-pair">
+          <div class="contrast-swatch"><div class="contrast-dot" style="background:#6b6f76"></div><div class="contrast-dot" style="background:#ffffff"></div></div>
+          <span class="contrast-ratio fail">3.8:1 fail</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ GRID DETECTION ════════════════════════════════════ -->
+<section class="fade-in">
+  <h2>Grid System Detection</h2>
+  <p>Spacing values from every padding, margin, and gap are tested against candidate base units (4px, 5px, 6px, 8px, 10px). The base with the highest adherence rate wins. Green bars = on grid. Red = off grid.</p>
+  <div class="demo">
+    <div class="demo-head"><div class="dots"><span></span><span></span><span></span></div>spacing grid · 8px base · 78% adherence</div>
+    <div class="demo-body">
+      <div class="grid-demo" id="gridDemo"></div>
+      <div class="grid-labels" id="gridLabels"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ INTERACTIVE STATES ════════════════════════════════ -->
+<section class="fade-in">
+  <h2>Interactive States</h2>
+  <p>The cursor is programmatically moved over interactive elements. Style changes between default and hover states are captured as structured diffs. Hover the buttons below to see what designsnap records.</p>
+  <div class="demo">
+    <div class="demo-head"><div class="dots"><span></span><span></span><span></span></div>hover state capture</div>
+    <div class="demo-body">
+      <div style="display:flex;gap:24px;align-items:start;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="state-btn primary">Primary action</div>
+          <div class="state-btn ghost">Secondary</div>
+        </div>
+        <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:4px">captured changes</div>
+          <div class="state-change"><span class="prop">background:</span> <span class="from">#5e6ad2</span> → <span class="to">#6e7ae2</span></div>
+          <div class="state-change"><span class="prop">box-shadow:</span> <span class="from">none</span> → <span class="to">0 4px 16px rgba(94,106,210,0.3)</span></div>
+          <div class="state-change"><span class="prop">transform:</span> <span class="from">none</span> → <span class="to">translateY(-1px)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MOTION SYSTEM ═════════════════════════════════════ -->
+<section class="fade-in">
+  <h2>Motion & Animation</h2>
+  <p>Transition durations, easing functions, animated properties, and @keyframes are extracted from stylesheets and computed styles. Builds a complete motion vocabulary for the design system.</p>
+  <div class="demo">
+    <div class="demo-head"><div class="dots"><span></span><span></span><span></span></div>motion system</div>
+    <div class="demo-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:10px">durations</div>
+          <div style="font-size:13px;line-height:2">
+            <div><code style="color:var(--accent)">150ms</code> <span style="color:var(--text-muted);font-size:11px">· 42 uses</span></div>
+            <div><code style="color:var(--accent)">200ms</code> <span style="color:var(--text-muted);font-size:11px">· 28 uses</span></div>
+            <div><code style="color:var(--accent)">300ms</code> <span style="color:var(--text-muted);font-size:11px">· 15 uses</span></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:10px">easings</div>
+          <div style="font-size:13px;line-height:2">
+            <div><code style="color:var(--purple)">ease</code> <span style="color:var(--text-muted);font-size:11px">· 36 uses</span></div>
+            <div><code style="color:var(--purple)">ease-in-out</code> <span style="color:var(--text-muted);font-size:11px">· 22 uses</span></div>
+            <div><code style="color:var(--purple)">cubic-bezier</code> <span style="color:var(--text-muted);font-size:11px">· 8 uses</span></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:10px">properties</div>
+          <div style="font-size:13px;line-height:2">
+            <div><code style="color:var(--blue)">all</code> <span style="color:var(--text-muted);font-size:11px">· 30 uses</span></div>
+            <div><code style="color:var(--blue)">opacity</code> <span style="color:var(--text-muted);font-size:11px">· 18 uses</span></div>
+            <div><code style="color:var(--blue)">transform</code> <span style="color:var(--text-muted);font-size:11px">· 12 uses</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ACCESSIBILITY ═════════════════════════════════════ -->
+<section class="fade-in">
+  <h2>Accessibility Audit</h2>
+  <p>Contrast ratios tested against WCAG 2.1 for every text element. Heading order validated. Landmark elements counted. Form labels checked. ARIA attributes inventoried. Focus styles detected.</p>
+  <div class="demo">
+    <div class="demo-head"><div class="dots"><span></span><span></span><span></span></div>a11y audit</div>
+    <div class="demo-body">
+      <div class="a11y-check"><div class="a11y-icon pass">✓</div><div class="a11y-text"><strong>Heading order:</strong> h1 → h2 → h3 (sequential)</div></div>
+      <div class="a11y-check"><div class="a11y-icon pass">✓</div><div class="a11y-text"><strong>Landmarks:</strong> header, main, footer, nav detected</div></div>
+      <div class="a11y-check"><div class="a11y-icon pass">✓</div><div class="a11y-text"><strong>Focus styles:</strong> :focus-visible rules found</div></div>
+      <div class="a11y-check"><div class="a11y-icon warn">!</div><div class="a11y-text"><strong>3 contrast issues:</strong> secondary text on light surfaces below 4.5:1</div></div>
+      <div class="a11y-check"><div class="a11y-icon warn">!</div><div class="a11y-text"><strong>2 images</strong> missing alt text</div></div>
+      <div class="a11y-check"><div class="a11y-icon pass">✓</div><div class="a11y-text"><strong>Form labels:</strong> 8 labeled, 0 unlabeled</div></div>
+      <div class="a11y-check"><div class="a11y-icon pass">✓</div><div class="a11y-text"><strong>Skip link:</strong> present</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ EXPORTS ═══════════════════════════════════════════ -->
+<section id="exports" class="fade-in">
+  <h2>Export Formats</h2>
+  <p>One extraction, five output formats. Use <code>--all</code> to generate everything at once.</p>
+  <div class="export-grid">
+    <div class="export-card">
+      <div class="name">DESIGN.md</div>
+      <div class="desc">14-section structured markdown with consistency score, a11y audit, and agent prompts</div>
+      <div class="flag">default output</div>
+    </div>
+    <div class="export-card">
+      <div class="name">Tailwind Config</div>
+      <div class="desc">Drop-in theme extension with colors, fonts, spacing, radius, shadows, screens</div>
+      <div class="flag">--tailwind</div>
+    </div>
+    <div class="export-card">
+      <div class="name">CSS Variables</div>
+      <div class="desc">Complete :root block with colors, type, spacing, radius, shadows, motion, opacity</div>
+      <div class="flag">--css</div>
+    </div>
+    <div class="export-card">
+      <div class="name">Style Dictionary</div>
+      <div class="desc">W3C-compatible design tokens JSON for style-dictionary pipelines</div>
+      <div class="flag">--tokens</div>
+    </div>
+    <div class="export-card">
+      <div class="name">Figma Tokens</div>
+      <div class="desc">Tokens Studio compatible JSON for syncing extracted tokens to Figma</div>
+      <div class="flag">--figma</div>
+    </div>
+    <div class="export-card">
+      <div class="name">Preview HTML</div>
+      <div class="desc">Visual catalog with score bars, color swatches, type samples, spacing blocks</div>
+      <div class="flag">--preview</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ INSTALL ═══════════════════════════════════════════ -->
+<section id="install" class="fade-in">
+  <h2>Install</h2>
+  <div class="code-block">
+    <div class="code-head">terminal</div>
+    <pre>npm install -g designsnap</pre>
+  </div>
+
+  <table style="margin-top:20px">
+    <thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead>
+    <tbody>
+      <tr><td><code>-o, --output</code></td><td>Output file path</td><td><code>./DESIGN.md</code></td></tr>
+      <tr><td><code>--preview</code></td><td>Generate visual preview HTML</td><td><code>false</code></td></tr>
+      <tr><td><code>--json</code></td><td>Output raw extracted data</td><td><code>false</code></td></tr>
+      <tr><td><code>--dark</code></td><td>Extract dark mode tokens</td><td><code>false</code></td></tr>
+      <tr><td><code>--responsive</code></td><td>Multi-viewport extraction</td><td><code>false</code></td></tr>
+      <tr><td><code>--no-states</code></td><td>Skip hover/focus simulation</td><td><code>false</code></td></tr>
+      <tr><td><code>--wait &lt;ms&gt;</code></td><td>Wait time for dynamic content</td><td><code>3000</code></td></tr>
+      <tr><td><code>--tailwind</code></td><td>Export Tailwind config</td><td><code>false</code></td></tr>
+      <tr><td><code>--css</code></td><td>Export CSS custom properties</td><td><code>false</code></td></tr>
+      <tr><td><code>--tokens</code></td><td>Export Style Dictionary JSON</td><td><code>false</code></td></tr>
+      <tr><td><code>--figma</code></td><td>Export Figma Tokens JSON</td><td><code>false</code></td></tr>
+      <tr><td><code>--all</code></td><td>Export all formats</td><td><code>false</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ API ═══════════════════════════════════════════════ -->
+<section class="fade-in">
+  <h2>Programmatic API</h2>
+  <div class="code-block">
+    <div class="code-head">app.js</div>
+    <pre><span class="kw">import</span> { <span class="fn">snap</span> } <span class="kw">from</span> <span class="str">"designsnap"</span>
+
+<span class="kw">const</span> result = <span class="kw">await</span> <span class="fn">snap</span>(<span class="str">"https://example.com"</span>, {
+  wait: 3000,
+  extractDark: true,
+  multiViewport: true,
+  extractStates: true,
+})
+
+result.markdown                  <span class="cmt">// DESIGN.md (14 sections)</span>
+result.data.consistencyScore     <span class="cmt">// { overall: 82, color: 90, ... }</span>
+result.data.colorHarmony         <span class="cmt">// { type: "analogous", ... }</span>
+result.data.gridSystem           <span class="cmt">// { base: 8, adherence: 78 }</span>
+result.data.scaleRatio           <span class="cmt">// { name: "Major Third", ratio: 1.25 }</span>
+result.data.accessibility        <span class="cmt">// { contrastIssues: [...], ... }</span>
+result.data.motionSystem         <span class="cmt">// { durations: {}, easings: {} }</span>
+result.data.interactiveStates    <span class="cmt">// { hover: [...], focus: [...] }</span>
+result.exports.tailwind          <span class="cmt">// Tailwind config string</span>
+result.exports.css               <span class="cmt">// CSS variables string</span>
+result.exports.styleDictionary   <span class="cmt">// Style Dictionary JSON</span>
+result.exports.figmaTokens       <span class="cmt">// Figma Tokens JSON</span></pre>
+  </div>
+</section>
+
+<!-- ═══ FRAMEWORK DETECTION ════════════════════════════════ -->
+<section class="fade-in">
+  <h2>Framework Detection</h2>
+  <p>designsnap scans CSS custom property naming patterns, class conventions, and meta tags to identify what framework or design system library a site is built with. Detects <strong>Tailwind, Bootstrap, Material UI, Chakra UI, Ant Design, Radix, shadcn/ui, Foundation, and Bulma</strong> with confidence scores.</p>
+  <div class="demo">
+    <div class="demo-head"><div class="dots"><span></span><span></span><span></span></div>detected frameworks</div>
+    <div class="demo-body">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--accent);width:32px;text-align:right">92%</div>
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="width:92%;height:100%;background:var(--accent);border-radius:3px"></div></div>
+          <div style="font-size:13px;min-width:100px">Tailwind CSS</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--purple);width:32px;text-align:right">68%</div>
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="width:68%;height:100%;background:var(--purple);border-radius:3px"></div></div>
+          <div style="font-size:13px;min-width:100px">shadcn/ui</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:11px;color:var(--text-muted);font-family:var(--mono)">signals: 14 --tw-* CSS vars, 6 --radius/--primary/--muted vars</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ COMPLETENESS ══════════════════════════════════════ -->
+<section class="fade-in">
+  <h2>System Completeness</h2>
+  <p>Beyond consistency, designsnap checks <strong>20 criteria</strong> that define a complete design system. Color roles, font pairs, type scale, heading hierarchy, spacing grid, component variants, motion tokens, dark mode, responsive breakpoints, focus styles, CSS variables, and icon system. You get a percentage and a checklist.</p>
+  <div class="demo">
+    <div class="demo-head"><div class="dots"><span></span><span></span><span></span></div>completeness · 85%</div>
+    <div class="demo-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <div style="color:var(--accent)">✓ Color palette defined</div>
+        <div style="color:var(--accent)">✓ Color roles assigned</div>
+        <div style="color:var(--accent)">✓ Primary font defined</div>
+        <div style="color:var(--accent)">✓ Secondary font defined</div>
+        <div style="color:var(--accent)">✓ Type scale 4+ sizes</div>
+        <div style="color:var(--accent)">✓ Heading hierarchy h1-h3</div>
+        <div style="color:var(--accent)">✓ Spacing scale 6+ values</div>
+        <div style="color:var(--accent)">✓ Consistent spacing grid</div>
+        <div style="color:var(--accent)">✓ Border radius system</div>
+        <div style="color:var(--accent)">✓ Shadow elevation system</div>
+        <div style="color:var(--accent)">✓ Button variants</div>
+        <div style="color:var(--accent)">✓ Input component</div>
+        <div style="color:var(--accent)">✓ Navigation component</div>
+        <div style="color:var(--accent)">✓ Motion system</div>
+        <div style="color:var(--accent)">✓ Responsive breakpoints</div>
+        <div style="color:var(--accent)">✓ Focus styles</div>
+        <div style="color:var(--accent)">✓ CSS custom properties</div>
+        <div style="color:var(--text-muted)">✗ Dark mode support</div>
+        <div style="color:var(--text-muted)">✗ Card component</div>
+        <div style="color:var(--text-muted)">✗ Icon system</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DIFF MODE ═════════════════════════════════════════ -->
+<section class="fade-in">
+  <h2>Diff Mode</h2>
+  <p>Compare two design system extractions side by side. Useful for <strong>competitive analysis</strong>, <strong>redesign tracking</strong>, or detecting <strong>design drift</strong> between staging and production.</p>
+  <div class="code-block">
+    <div class="code-head">diff.js</div>
+    <pre><span class="kw">import</span> { <span class="fn">snapDiff</span> } <span class="kw">from</span> <span class="str">"designsnap"</span>
+
+<span class="kw">const</span> result = <span class="kw">await</span> <span class="fn">snapDiff</span>(<span class="str">"https://site-a.com"</span>, <span class="str">"https://site-b.com"</span>)
+
+result.diffMarkdown              <span class="cmt">// structured diff as markdown</span>
+result.diffResult.summary        <span class="cmt">// { colorsAdded: 3, colorsRemoved: 1, ... }</span>
+result.diffResult.scores.overall <span class="cmt">// { a: 82, b: 75, delta: -7 }</span>
+result.diffResult.colors.added   <span class="cmt">// [{ hex: "#ff0000", role: "error" }]</span>
+result.diffResult.gridSystem     <span class="cmt">// { a: "8px (78%)", b: "4px (85%)" }</span></pre>
+  </div>
+  <p style="margin-top:12px">The diff covers colors, fonts, spacing, radii, shadows, components, breakpoints, grid system, consistency scores, and accessibility changes.</p>
+</section>
+
+<!-- ═══ DISCLAIMER ════════════════════════════════════════ -->
+<section id="disclaimer" class="fade-in">
+  <h2>Disclaimer</h2>
+  <div class="disclaimer">
+    <h4>Educational & Experimental Use Only</h4>
+    <p>This tool is provided strictly for educational and experimental purposes. It reads publicly visible computed CSS values from rendered web pages, equivalent to what any browser's developer tools expose.</p>
+    <ul>
+      <li>No proprietary code, assets, or non-public information is accessed</li>
+      <li>Extracted tokens represent publicly visible styling</li>
+      <li>No ownership of any visual identity or brand is claimed</li>
+      <li>Users are responsible for compliance with applicable terms of service</li>
+      <li>Does not bypass any access controls, authentication, or rate limiting</li>
+      <li>Output should not be used to create confusingly similar products or infringe trademarks</li>
+    </ul>
+    <p>The author provides this tool as-is with no warranty. Use responsibly.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div>MIT · <a href="https://github.com/Dragoon0x/designsnap">Dragoon0x/designsnap</a></div>
+  <div>For educational and experimental purposes only</div>
+</footer>
+
+<script>
+  // Copy command
+  function copyCmd(el, text) {
+    navigator.clipboard.writeText(text);
+    el.classList.add("copied");
+    el.querySelector(".hint").textContent = "copied!";
+    setTimeout(() => { el.classList.remove("copied"); el.querySelector(".hint").textContent = "click to copy"; }, 2000);
+  }
+
+  // Score bar animation
+  const obs = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+        // Animate score fills
+        entry.target.querySelectorAll(".score-fill[data-w]").forEach(el => {
+          setTimeout(() => { el.style.width = el.dataset.w + "%"; }, 200);
+        });
+      }
+    }
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll(".fade-in").forEach(el => obs.observe(el));
+
+  // Grid demo
+  const gridValues = [4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96];
+  const base = 8;
+  const gridDemo = document.getElementById("gridDemo");
+  const gridLabels = document.getElementById("gridLabels");
+  gridValues.forEach(v => {
+    const bar = document.createElement("div");
+    bar.className = "grid-bar " + (v % base === 0 ? "on-grid" : "off-grid");
+    bar.style.height = Math.min(v, 96) * 0.6 + "px";
+    gridDemo.appendChild(bar);
+    const label = document.createElement("span");
+    label.textContent = v;
+    gridLabels.appendChild(label);
+  });
+</script>
+
+</body>
+</html>

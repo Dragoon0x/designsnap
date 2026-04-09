@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 Dragoon
+Copyright (c) 2026 Dragoon0x
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+ADDITIONAL DISCLAIMER
+
+This tool is provided for educational and experimental purposes only. It reads
+publicly visible computed CSS values from rendered web pages, equivalent to
+what any browser's developer tools expose. No proprietary code, assets, or
+non-public information is accessed. No ownership of any website's visual
+identity is claimed. Users are responsible for ensuring their use complies
+with applicable terms of service and intellectual property laws.

@@ -1,0 +1,34 @@
+{
+  "name": "designsnap",
+  "version": "0.2.0",
+  "description": "Deep design system extraction from any live URL",
+  "type": "module",
+  "bin": {
+    "designsnap": "./bin/designsnap.js"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node bin/designsnap.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "design-system",
+    "design-tokens",
+    "css-extraction",
+    "cli",
+    "accessibility",
+    "tailwind"
+  ],
+  "author": "Dragoon0x",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dragoon0x/designsnap"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "ora": "^8.0.1",
+    "puppeteer": "^23.0.0"
+  }
+}
